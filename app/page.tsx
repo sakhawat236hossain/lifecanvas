@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, Sparkles, Image as ImageIcon, BookHeart, Calendar } from "lucide-react";
+import { ArrowRight, Sparkles, Image as ImageIcon, BookHeart, Calendar, Shield, Activity, Heart, PenTool, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function LandingPage() {
@@ -81,6 +81,105 @@ export default function LandingPage() {
           </motion.div>
         </div>
       </section>
+
+      {/* Features Section */}
+      <section className="py-24 px-4 bg-background relative">
+        <div className="container mx-auto max-w-6xl">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-5xl font-playfair font-bold mb-4">আপনার জীবনের প্রতিটি অধ্যায়</h2>
+            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+              LifeCanvas আপনাকে একটি নিরাপদ ও সুন্দর পরিবেশে আপনার স্মৃতিগুলো সাজিয়ে রাখার সুযোগ দেয়।
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {[
+              {
+                icon: Heart,
+                title: "স্মৃতি সংরক্ষণ",
+                desc: "আপনার জীবনের বিশেষ মুহূর্তগুলো ছবি, তারিখ ও অনুভূতির সাথে চিরতরে ধরে রাখুন।"
+              },
+              {
+                icon: Activity,
+                title: "মেজাজ ট্র্যাকিং",
+                desc: "প্রতিটি স্মৃতির সাথে আপনার মেজাজ কেমন ছিল তা রেকর্ড করুন এবং পরে বিশ্লেষণ করুন।"
+              },
+              {
+                icon: Shield,
+                title: "নিরাপদ আর্কাইভ",
+                desc: "আপনার সমস্ত ডেটা নিরাপদে সংরক্ষিত থাকে, এটি আপনার নিজস্ব একান্ত ব্যক্তিগত জায়গা।"
+              }
+            ].map((feature, idx) => (
+              <motion.div 
+                key={idx}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: idx * 0.2 }}
+                className="p-8 rounded-3xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"
+              >
+                <div className="w-14 h-14 rounded-2xl bg-primary/20 flex items-center justify-center mb-6">
+                  <feature.icon className="h-7 w-7 text-primary" />
+                </div>
+                <h3 className="text-xl font-bold font-playfair mb-3">{feature.title}</h3>
+                <p className="text-muted-foreground leading-relaxed">{feature.desc}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* How it Works Section */}
+      <section className="py-24 px-4 bg-secondary/5 relative border-t border-white/5">
+        <div className="container mx-auto max-w-5xl">
+          <div className="flex flex-col md:flex-row items-center gap-16">
+            <motion.div 
+              initial={{ opacity: 0, x: -30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              className="flex-1 space-y-8"
+            >
+              <h2 className="text-3xl md:text-5xl font-playfair font-bold">খুব সহজেই শুরু করুন</h2>
+              <div className="space-y-6">
+                {[
+                  { icon: PenTool, text: "আপনার অনুভূতি এবং গল্পগুলো লিখুন" },
+                  { icon: ImageIcon, text: "কভার ছবি ও লোকেশন যোগ করুন" },
+                  { icon: CheckCircle, text: "আপনার ব্যক্তিগত ড্যাশবোর্ডে উপভোগ করুন" }
+                ].map((step, idx) => (
+                  <div key={idx} className="flex items-center gap-4">
+                    <div className="flex-shrink-0 w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
+                      {idx + 1}
+                    </div>
+                    <p className="text-lg font-medium">{step.text}</p>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+            
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              className="flex-1 w-full aspect-square md:aspect-[4/3] rounded-3xl overflow-hidden border border-white/10 shadow-2xl relative bg-card flex items-center justify-center"
+            >
+               <div className="text-center space-y-4">
+                 <div className="inline-flex p-4 rounded-full bg-primary/20 text-primary">
+                   <BookHeart className="h-12 w-12" />
+                 </div>
+                 <h3 className="text-2xl font-playfair font-bold">আপনার ডায়েরি প্রস্তুত</h3>
+               </div>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-white/10 bg-background py-12 px-4 text-center">
+        <p className="text-muted-foreground font-playfair text-xl mb-4">LifeCanvas</p>
+        <p className="text-sm text-muted-foreground/60">
+          © {new Date().getFullYear()} LifeCanvas. All rights reserved.
+        </p>
+      </footer>
     </div>
   );
 }
