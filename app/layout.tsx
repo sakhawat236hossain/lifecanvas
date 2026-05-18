@@ -24,6 +24,7 @@ export const metadata: Metadata = {
 
 import { ThemeProvider } from "@/components/theme-provider";
 import { Navbar } from "@/components/layout/Navbar";
+import { MobileNav } from "@/components/layout/MobileNav";
 
 import { Toaster } from "sonner";
 
@@ -46,9 +47,10 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <Navbar />
-          <main className="flex-1 flex flex-col">
+          <main className="flex-1 flex flex-col pb-24 md:pb-0">
             {children}
           </main>
+          <MobileNav />
           <Toaster position="bottom-right" richColors theme="dark" />
         </ThemeProvider>
       </body>
