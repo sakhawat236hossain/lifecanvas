@@ -171,6 +171,59 @@ export async function GET() {
       }
     }
 
+    // 9. Local AI Tag-Mood Insights
+    const tagMoodCounts: { [tag: string]: { [mood: string]: number } } = {};
+    const tagTotalCounts: { [tag: string]: number } = {};
+
+    allMemories.forEach(m => {
+      let tags: string[] = [];
+      if (Array.isArray(m.tags)) {
+        tags = m.tags;
+      } else if (typeof m.tags === "string" && m.tags.trim() !== "") {
+        tags = m.tags.split(",").map((t: string) => t.trim());
+      }
+
+      const mood = m.mood;
+      if (mood && tags.length > 0) {
+        tags.forEach((tag: string) => {
+          if (!tag) return;
+          const cleanTag = tag.startsWith("#") ? tag : `#${tag}`;
+          if (!tagMoodCounts[cleanTag]) {
+            tagMoodCounts[cleanTag] = {};
+            tagTotalCounts[cleanTag] = 0;
+          }
+          tagMoodCounts[cleanTag][mood] = (tagMoodCounts[cleanTag][mood] || 0) + 1;
+          tagTotalCounts[cleanTag]++;
+        });
+      }
+    });
+
+    const insights: string[] = [];
+    const sortedTags = Object.keys(tagTotalCounts).sort((a, b) => tagTotalCounts[b] - tagTotalCounts[a]);
+
+    sortedTags.slice(0, 2).forEach(tag => {
+      const moods = tagMoodCounts[tag];
+      const bestMood = Object.keys(moods).sort((a, b) => moods[b] - moods[a])[0];
+      const bestMoodCount = moods[bestMood];
+      const percentage = Math.round((bestMoodCount / tagTotalCounts[tag]) * 100);
+      
+      let moodVerb = "শান্ত ও প্রফুল্ল";
+      if (bestMood.includes("😊")) moodVerb = "উচ্ছ্বসিত ও আনন্দদায়ক 😊";
+      else if (bestMood.includes("🧘")) moodVerb = "শান্তপূর্ণ ও স্থির 🧘";
+      else if (bestMood.includes("🤩")) moodVerb = "অত্যন্ত রোমাঞ্চিত ও উত্তেজিত 🤩";
+      else if (bestMood.includes("🥹")) moodVerb = "স্মৃতিকাতর ও আবেগপ্রবণ 🥹";
+      else if (bestMood.includes("💖")) moodVerb = "কৃতজ্ঞ ও ভালোবাসায় পূর্ণ 💖";
+      else if (bestMood.includes("😔")) moodVerb = "কিছুটা বিষণ্ণ ও চিন্তিত 😔";
+
+      insights.push(
+        `আপনি যখনই '${tag}' ট্যাগটি ব্যবহার করেছেন, আপনার মেজাজ ${percentage}% সময় '${moodVerb}' ছিল!`
+      );
+    });
+
+    if (insights.length === 0) {
+      insights.push("আপনার স্মৃতিতে আরও হ্যাশট্যাগ যোগ করলে এখানে চমৎকার এআই আত্ম-বিশ্লেষণ ফুটে উঠবে!");
+    }
+
     return NextResponse.json({
       totalMemories,
       recentMemories,
@@ -184,7 +237,8 @@ export async function GET() {
       recentJournals,
       pixelsData,
       moodStats,
-      rewindItem
+      rewindItem,
+      insights
     }, { status: 200 });
   } catch (error) {
     console.error("Error fetching dashboard stats:", error);
