@@ -32,19 +32,24 @@ export default function SingleMemoryPage() {
     if (id) fetchMemory();
   }, [id]);
 
-  const handleDelete = async () => {
-    if (!confirm("আপনি কি নিশ্চিত যে আপনি এই স্মৃতি মুছে ফেলতে চান? এটি আর ফিরে পাওয়া যাবে না।")) return;
-    
-    setDeleting(true);
-    try {
-      await axios.delete(`/api/memories/${id}`);
-      toast.success("স্মৃতি সফলভাবে মুছে ফেলা হয়েছে!");
-      router.push("/memories");
-    } catch (error) {
-      console.error("Failed to delete:", error);
-      toast.error("স্মৃতি মুছে ফেলতে ব্যর্থ হয়েছে।");
-      setDeleting(false);
-    }
+  const handleDelete = () => {
+    toast("আপনি কি নিশ্চিত যে আপনি এই স্মৃতি মুছে ফেলতে চান? এটি আর ফিরে পাওয়া যাবে না।", {
+      action: {
+        label: "হ্যাঁ, মুছুন",
+        onClick: async () => {
+          setDeleting(true);
+          try {
+            await axios.delete(`/api/memories/${id}`);
+            toast.success("স্মৃতি সফলভাবে মুছে ফেলা হয়েছে!");
+            router.push("/memories");
+          } catch (error) {
+            console.error("Failed to delete:", error);
+            toast.error("স্মৃতি মুছে ফেলতে ব্যর্থ হয়েছে।");
+            setDeleting(false);
+          }
+        },
+      },
+    });
   };
 
   if (loading) {
