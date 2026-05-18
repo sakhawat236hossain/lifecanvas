@@ -4,13 +4,27 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { MemoryCard } from "@/components/MemoryCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Image as ImageIcon, Sparkles, Flame, Target, Trophy, Calendar, BookHeart, Mic, Volume2 } from "lucide-react";
+import { Loader2, Image as ImageIcon, Sparkles, Flame, Target, Trophy, Calendar, BookHeart, Mic, Volume2, CheckCircle2, Circle } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { Confetti } from "@/components/Confetti";
+import { SlideshowPlayer } from "@/components/SlideshowPlayer";
 
 export default function DashboardPage() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [isSlideshowOpen, setIsSlideshowOpen] = useState(false);
+  const [completedChallenges, setCompletedChallenges] = useState<{ [key: string]: boolean }>({});
+
+  const challengesList = [
+    { id: "read", text: "১০ মিনিট স্ক্রিন অফ রেখে বই পড়ুন 📚", points: 50 },
+    { id: "gratitude", text: "আজকের দিনলিপিতে ১টি কৃতজ্ঞতার বিষয় লিখুন 💖", points: 100 },
+    { id: "water", text: "২ লিটার পানি পান করুন 💧", points: 30 }
+  ];
+
+  const todayKey = new Date().toISOString().split("T")[0];
 
   useEffect(() => {
     async function fetchData() {
@@ -24,7 +38,42 @@ export default function DashboardPage() {
       }
     }
     fetchData();
-  }, []);
+
+    // Load completed challenges from localStorage
+    const saved = localStorage.getItem(`challenges_${todayKey}`);
+    if (saved) {
+      setCompletedChallenges(JSON.parse(saved));
+    }
+  }, [todayKey]);
+
+  const handleCompleteChallenge = async (id: string, text: string, points: number) => {
+    if (completedChallenges[id]) return;
+
+    try {
+      // Award XP by creating a challenge achievement in database
+      await axios.post("/api/achievements", {
+        title: `দৈনিক চ্যালেঞ্জ: ${text.split(" ")[0]}`,
+        description: `সম্পন্ন করা হয়েছে: ${text}`,
+        points: points,
+        icon: "Star",
+        color: "from-indigo-500 to-cyan-500"
+      });
+
+      const updated = { ...completedChallenges, [id]: true };
+      setCompletedChallenges(updated);
+      localStorage.setItem(`challenges_${todayKey}`, JSON.stringify(updated));
+
+      // Trigger Confetti Celebration and update dashboard
+      setShowConfetti(true);
+      toast.success(`চ্যালেঞ্জ সম্পন্ন! +${points} XP যোগ হয়েছে!`);
+      
+      const res = await axios.get("/api/dashboard");
+      setData(res.data);
+    } catch (err) {
+      console.error(err);
+      toast.error("চ্যালেঞ্জ সংরক্ষণ করতে ব্যর্থ হয়েছে।");
+    }
+  };
 
   if (loading) {
     return (
@@ -36,6 +85,7 @@ export default function DashboardPage() {
 
   const levelStats = data?.levelStats;
   const rewind = data?.rewindItem;
+  const insights = data?.insights || [];
 
   const moodName = data?.moodStats?.length > 0 
     ? [...data.moodStats].sort((a, b) => b.value - a.value)[0].name 
@@ -82,7 +132,19 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="space-y-10 max-w-7xl mx-auto pb-16">
+    <div className="space-y-10 max-w-7xl mx-auto pb-16 relative">
+      {/* Confetti canvas celebration */}
+      <Confetti active={showConfetti} onComplete={() => setShowConfetti(false)} />
+
+      {/* Cinematic Slideshow Player overlay */}
+      {data?.recentMemories && (
+        <SlideshowPlayer 
+          memories={data.recentMemories} 
+          isOpen={isSlideshowOpen} 
+          onClose={() => setIsSlideshowOpen(false)} 
+        />
+      )}
+
       {/* Welcome banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-6">
         <div className="space-y-2">
@@ -174,7 +236,7 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {/* Row 2: Year in Pixels & Memory Rewind Grid */}
+      {/* Row 2: Year in Pixels & Challenges / Insights Column */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         {/* Year in Pixels Canvas */}
@@ -185,13 +247,13 @@ export default function DashboardPage() {
               <span>বছরের লাইফ ক্যানভাস (Year in Pixels)</span>
             </h3>
             <p className="text-muted-foreground text-xs mt-1">
-              Your visual mood canvas over the last 364 days. hover for details!
+              আপনার গত ৩৬৪ দিনের দিনলিপির মুডের ভিজ্যুয়াল ক্যানভাস। বক্সের উপর হোভার করে বিস্তারিত দেখুন!
             </p>
           </div>
 
           {/* Interactive CSS Grid Canvas */}
           <div 
-            className="flex-1 w-full overflow-hidden p-2 rounded-2xl bg-white/[0.01] border border-white/5 shadow-inner"
+            className="flex-1 w-full overflow-hidden p-2 rounded-2xl bg-white/[0.01] border border-white/5 shadow-inner min-h-[220px]"
             style={{ 
               display: "grid", 
               gridTemplateColumns: "repeat(auto-fill, minmax(13px, 1fr))", 
@@ -204,7 +266,7 @@ export default function DashboardPage() {
                 className={`h-3.5 w-3.5 rounded-[4px] cursor-pointer transition-all duration-305 relative group/pixel ${getMoodColor(cell.mood)}`}
               >
                 {/* Custom glowing floating hover tooltip */}
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 hidden group-hover/pixel:flex flex-col items-center bg-black/90 backdrop-blur-md border border-white/10 text-white rounded-xl p-2.5 text-[10px] shadow-2xl z-30 pointer-events-none">
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 hidden group-hover/pixel:flex flex-col items-center bg-black/95 backdrop-blur-md border border-white/10 text-white rounded-xl p-2.5 text-[10px] shadow-2xl z-30 pointer-events-none">
                   <span className="font-bold font-mono text-muted-foreground">{cell.date}</span>
                   <span className="text-primary font-black mt-0.5 text-center">{cell.mood ? `অনুভূতি: ${cell.mood}` : "কোনো দিনলিপি নেই"}</span>
                   {cell.title && <span className="text-[9px] text-white/70 mt-1 italic text-center line-clamp-1">"{cell.title}"</span>}
@@ -225,68 +287,134 @@ export default function DashboardPage() {
           </div>
         </Card>
 
-        {/* Memory Rewind Banner */}
-        {rewind ? (
-          <Card className="border-white/5 bg-white/5 backdrop-blur-md hover:border-white/10 transition-all duration-300 overflow-hidden flex flex-col justify-between group relative">
-            <div className="absolute top-4 left-4 z-10">
-              <span className="bg-primary/30 backdrop-blur-md border border-primary/20 text-primary-foreground px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-md">
-                {rewind.badge}
-              </span>
-            </div>
-            
-            {/* Cinematic Image Frame */}
-            <div className="relative w-full h-44 bg-white/[0.02] border-b border-white/5 overflow-hidden">
-              {rewind.image ? (
-                <img 
-                  src={rewind.image} 
-                  alt={rewind.title} 
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
-                />
-              ) : (
-                <div className="w-full h-full bg-gradient-to-br from-primary/10 via-transparent to-secondary/10 flex items-center justify-center">
-                  <span className="font-playfair text-xl opacity-20">LifeCanvas Rewind</span>
-                </div>
-              )}
-              <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/25 to-transparent" />
+        {/* Right Column: Daily Challenges, AI Insights, Memory Rewind */}
+        <div className="space-y-8 flex flex-col justify-between">
+          
+          {/* Daily Challenges Widget */}
+          <Card className="border-white/5 bg-white/5 backdrop-blur-md p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-white/5 pb-2.5">
+              <h3 className="font-playfair font-bold text-base flex items-center gap-2">
+                <Target className="h-4.5 w-4.5 text-primary" />
+                <span>আজকের মিনি-চ্যালেঞ্জ</span>
+              </h3>
+              <span className="text-[10px] bg-primary/20 text-primary-foreground px-2 py-0.5 rounded-full font-bold">DAILY</span>
             </div>
 
-            <CardContent className="p-6 space-y-3 flex-1 flex flex-col justify-between">
-              <div className="space-y-1.5">
-                <span className="text-[10px] font-bold text-muted-foreground/60 font-mono">
-                  {new Date(rewind.date).toLocaleDateString("bn-BD", { day: "numeric", month: "long", year: "numeric" })}
-                </span>
-                <h3 className="font-playfair font-bold text-lg text-foreground group-hover:text-primary transition-colors duration-300 line-clamp-1">
-                  {rewind.title}
-                </h3>
-                <p className="text-muted-foreground text-xs leading-relaxed line-clamp-3 font-serif">
-                  {rewind.description}
+            <div className="space-y-3">
+              {challengesList.map((c) => {
+                const isCompleted = !!completedChallenges[c.id];
+                return (
+                  <div 
+                    key={c.id} 
+                    onClick={() => handleCompleteChallenge(c.id, c.text, c.points)}
+                    className={`p-3 rounded-xl border flex items-center justify-between gap-3 cursor-pointer transition-all duration-300 ${
+                      isCompleted 
+                        ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400/90" 
+                        : "bg-white/5 border-white/5 hover:border-white/10 text-foreground/90 hover:scale-[1.01]"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      {isCompleted ? (
+                        <CheckCircle2 className="h-4.5 w-4.5 text-emerald-400 shrink-0" />
+                      ) : (
+                        <Circle className="h-4.5 w-4.5 text-muted-foreground shrink-0" />
+                      )}
+                      <span className="text-xs font-medium leading-tight">{c.text}</span>
+                    </div>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${
+                      isCompleted ? "bg-emerald-500/20 text-emerald-300" : "bg-white/5 text-muted-foreground"
+                    }`}>
+                      +{c.points} XP
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+
+          {/* Local AI Insights Card */}
+          <Card className="border-white/5 bg-white/5 backdrop-blur-md p-6 space-y-3 relative overflow-hidden group">
+            <div className="absolute -right-4 -top-4 opacity-5 group-hover:scale-110 transition-transform duration-500">
+              <Sparkles className="h-24 w-24 text-primary" />
+            </div>
+
+            <div className="flex items-center gap-2 border-b border-white/5 pb-2">
+              <Sparkles className="h-4.5 w-4.5 text-amber-400 animate-pulse" />
+              <h3 className="font-playfair font-bold text-base text-foreground">এআই আত্ম-বিশ্লেষণ</h3>
+            </div>
+
+            <div className="space-y-2">
+              {insights.map((insight: string, idx: number) => (
+                <p key={idx} className="text-xs text-muted-foreground leading-relaxed font-medium">
+                  {insight}
                 </p>
+              ))}
+            </div>
+          </Card>
+
+          {/* Cinematic Memory Rewind */}
+          {rewind ? (
+            <Card className="border-white/5 bg-white/5 backdrop-blur-md overflow-hidden group relative">
+              <div className="absolute top-4 left-4 z-10">
+                <span className="bg-primary/30 backdrop-blur-md border border-primary/20 text-primary-foreground px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider shadow-md">
+                  {rewind.badge}
+                </span>
+              </div>
+              
+              <div className="relative w-full h-36 bg-white/[0.02] border-b border-white/5 overflow-hidden">
+                {rewind.image ? (
+                  <img 
+                    src={rewind.image} 
+                    alt={rewind.title} 
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-primary/10 via-transparent to-secondary/10 flex items-center justify-center">
+                    <span className="font-playfair text-base opacity-20">LifeCanvas Rewind</span>
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/25 to-transparent" />
               </div>
 
-              <div className="pt-4 border-t border-white/5 flex justify-end">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => {
-                    if (rewind.type === "memory") {
-                      window.location.href = `/memories/${rewind._id}`;
-                    } else {
-                      window.location.href = `/journals`;
-                    }
-                  }}
-                  className="rounded-full text-[10px] font-semibold border-white/10 hover:bg-white/5 gap-1.5 cursor-pointer h-8"
-                >
-                  স্মৃতিতে ফিরে যান
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card className="border-white/5 bg-white/5 backdrop-blur-md hover:border-white/10 transition-all duration-300 p-6 flex flex-col items-center justify-center text-center space-y-3">
-            <span className="font-playfair text-xl opacity-20">LifeCanvas Rewind</span>
-            <p className="text-muted-foreground text-xs">আজকের দিনে অতীতে কোনো স্মৃতি নেই। নতুন স্মৃতি বা ডায়েরি লিখলে তা ১ বছর পর চমৎকারভাবে এখানে রিকল হবে!</p>
-          </Card>
-        )}
+              <CardContent className="p-5 space-y-2">
+                <div className="space-y-1">
+                  <span className="text-[9px] font-bold text-muted-foreground/60 font-mono">
+                    {new Date(rewind.date).toLocaleDateString("bn-BD", { day: "numeric", month: "long", year: "numeric" })}
+                  </span>
+                  <h3 className="font-playfair font-bold text-md text-foreground group-hover:text-primary transition-colors duration-300 line-clamp-1">
+                    {rewind.title}
+                  </h3>
+                  <p className="text-muted-foreground text-[11px] leading-relaxed line-clamp-2 font-serif">
+                    {rewind.description}
+                  </p>
+                </div>
+
+                <div className="pt-2 flex justify-end">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => {
+                      if (rewind.type === "memory") {
+                        window.location.href = `/memories/${rewind._id}`;
+                      } else {
+                        window.location.href = `/journals`;
+                      }
+                    }}
+                    className="rounded-full text-[9px] font-semibold border-white/10 hover:bg-white/5 gap-1.5 cursor-pointer h-7"
+                  >
+                    স্মৃতিতে ফিরে যান
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="border-white/5 bg-white/5 p-6 flex flex-col items-center justify-center text-center space-y-2">
+              <span className="font-playfair text-md opacity-25">LifeCanvas Rewind</span>
+              <p className="text-muted-foreground text-[10px]">আজকের দিনে অতীতে কোনো স্মৃতি নেই।</p>
+            </Card>
+          )}
+
+        </div>
       </div>
 
       {/* Row 3: Mood Analytics Bar Charts & Side-by-Side Feeds */}
@@ -345,10 +473,24 @@ export default function DashboardPage() {
           
           {/* Recent Memories */}
           <div className="space-y-6">
-            <h2 className="text-2xl font-playfair font-bold flex items-center gap-2">
-              <ImageIcon className="h-5 w-5 text-primary" />
-              <span>সাম্প্রতিক স্মৃতিসমূহ</span>
-            </h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-playfair font-bold flex items-center gap-2">
+                <ImageIcon className="h-5 w-5 text-primary" />
+                <span>সাম্প্রতিক স্মৃতিসমূহ</span>
+              </h2>
+              {data?.recentMemories && data.recentMemories.filter((m: any) => m.image).length > 0 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsSlideshowOpen(true)}
+                  className="rounded-full text-[10px] font-bold border-primary/20 bg-primary/10 hover:bg-primary/20 text-primary-foreground gap-1.5 cursor-pointer h-7"
+                >
+                  স্মৃতি স্লাইডশো 🎥
+                </Button>
+              )}
+            </div>
+            
             {data?.recentMemories && data.recentMemories.length > 0 ? (
               <div className="space-y-6">
                 {data.recentMemories.slice(0, 2).map((memory: any, idx: number) => (
