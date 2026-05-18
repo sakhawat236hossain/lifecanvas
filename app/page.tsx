@@ -173,6 +173,40 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Quote Section */}
+      <section className="py-32 px-4 bg-background relative overflow-hidden flex items-center justify-center">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-primary/10 via-background to-background"></div>
+        <div className="container mx-auto max-w-4xl relative z-10 text-center space-y-8">
+          <Sparkles className="h-12 w-12 text-primary/50 mx-auto" />
+          <h2 className="text-3xl md:text-5xl font-playfair font-bold leading-relaxed">
+            "স্মৃতি হলো আমাদের জীবনের সবচেয়ে মূল্যবান সম্পদ। এগুলো আমাদের মনে করিয়ে দেয় আমরা কোথা থেকে এসেছি এবং আমরা কে।"
+          </h2>
+          <p className="text-xl text-muted-foreground">— LifeCanvas</p>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-24 px-4 bg-background relative border-t border-white/5">
+        <div className="container mx-auto max-w-5xl">
+          <div className="p-12 md:p-20 rounded-[3rem] bg-gradient-to-br from-primary/20 via-background to-secondary/20 border border-white/10 text-center space-y-8 relative overflow-hidden shadow-2xl">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-primary/20 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2" />
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-secondary/20 rounded-full blur-[80px] translate-y-1/2 -translate-x-1/2" />
+            
+            <h2 className="text-4xl md:text-6xl font-playfair font-bold relative z-10">আপনার জীবনের গল্প আজই লেখা শুরু করুন</h2>
+            <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto relative z-10">
+              একটি সুন্দর ডায়েরি আপনার জন্য অপেক্ষা করছে। আপনার প্রথম স্মৃতি সংরক্ষণ করুন এবং LifeCanvas এর সাথে আপনার যাত্রা শুরু করুন।
+            </p>
+            <div className="relative z-10 pt-4">
+              <Link href="/add-memory">
+                <Button size="lg" className="rounded-full h-14 px-10 text-lg gap-2 shadow-xl shadow-primary/25 hover:scale-105 transition-transform">
+                  শুরু করুন <ArrowRight className="h-5 w-5" />
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Footer */}
       <footer className="border-t border-white/10 bg-background py-12 px-4 text-center">
         <p className="text-muted-foreground font-playfair text-xl mb-4">LifeCanvas</p>
