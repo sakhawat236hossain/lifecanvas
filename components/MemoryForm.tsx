@@ -9,6 +9,7 @@ import { motion } from "framer-motion";
 import { CalendarIcon, ImagePlus, Loader2, Sparkles } from "lucide-react";
 import { format } from "date-fns";
 import axios from "axios";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,15 +41,28 @@ const memorySchema = z.object({
 
 type MemoryFormValues = z.infer<typeof memorySchema>;
 
-export function MemoryForm() {
+interface MemoryFormProps {
+  initialData?: any;
+}
+
+export function MemoryForm({ initialData }: MemoryFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(initialData?.image || null);
 
   const { register, handleSubmit, setValue, formState: { errors } } = useForm<MemoryFormValues>({
     resolver: zodResolver(memorySchema),
-    defaultValues: {
+    defaultValues: initialData ? {
+      title: initialData.title,
+      topic: initialData.topic,
+      description: initialData.description,
+      mood: initialData.mood,
+      tags: initialData.tags?.join(", ") || "",
+      date: initialData.date ? new Date(initialData.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+      location: initialData.location || "",
+      privacy: initialData.privacy || "ব্যক্তিগত",
+    } : {
       date: new Date().toISOString().split('T')[0],
       privacy: "ব্যক্তিগত",
     }
@@ -69,7 +83,7 @@ export function MemoryForm() {
   const onSubmit = async (data: MemoryFormValues) => {
     setIsSubmitting(true);
     try {
-      let imageUrl = null;
+      let imageUrl = initialData?.image || null;
       if (imageFile) {
         imageUrl = await uploadImageToCloudinary(imageFile);
       }
@@ -80,13 +94,19 @@ export function MemoryForm() {
         image: imageUrl,
       };
 
-      await axios.post("/api/memories", memoryData);
+      if (initialData?._id) {
+        await axios.patch(`/api/memories/${initialData._id}`, memoryData);
+        toast.success("স্মৃতি সফলভাবে আপডেট হয়েছে!");
+      } else {
+        await axios.post("/api/memories", memoryData);
+        toast.success("স্মৃতি সফলভাবে সংরক্ষণ করা হয়েছে!");
+      }
       
       router.push("/memories");
       router.refresh();
     } catch (error) {
       console.error("Failed to save memory:", error);
-      alert("স্মৃতি সংরক্ষণ করতে ব্যর্থ হয়েছে। পুনরায় চেষ্টা করুন।");
+      toast.error("স্মৃতি সংরক্ষণ করতে ব্যর্থ হয়েছে। পুনরায় চেষ্টা করুন।");
     } finally {
       setIsSubmitting(false);
     }
@@ -229,7 +249,7 @@ export function MemoryForm() {
                   সংরক্ষণ করা হচ্ছে...
                 </>
               ) : (
-                "স্মৃতি সংরক্ষণ করুন"
+                initialData ? "স্মৃতি আপডেট করুন" : "স্মৃতি সংরক্ষণ করুন"
               )}
             </Button>
           </div>

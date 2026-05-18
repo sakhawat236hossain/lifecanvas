@@ -15,7 +15,7 @@ export async function GET(request: Request) {
     if (search) {
       query.title = { $regex: search, $options: "i" };
     }
-    if (topic && topic !== "All") {
+    if (topic && topic !== "All" && topic !== "সব") {
       query.topic = topic;
     }
 

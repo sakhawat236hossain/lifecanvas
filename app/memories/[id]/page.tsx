@@ -9,6 +9,7 @@ import { motion } from "framer-motion";
 import { ArrowLeft, CalendarDays, MapPin, Tag, Trash2, Edit, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 
 export default function SingleMemoryPage() {
   const { id } = useParams();
@@ -37,10 +38,11 @@ export default function SingleMemoryPage() {
     setDeleting(true);
     try {
       await axios.delete(`/api/memories/${id}`);
+      toast.success("স্মৃতি সফলভাবে মুছে ফেলা হয়েছে!");
       router.push("/memories");
     } catch (error) {
       console.error("Failed to delete:", error);
-      alert("স্মৃতি মুছে ফেলতে ব্যর্থ হয়েছে।");
+      toast.error("স্মৃতি মুছে ফেলতে ব্যর্থ হয়েছে।");
       setDeleting(false);
     }
   };
@@ -100,6 +102,7 @@ export default function SingleMemoryPage() {
               variant="ghost" 
               size="icon" 
               className="rounded-full bg-background/20 backdrop-blur-md hover:bg-background/40"
+              onClick={() => router.push(`/memories/${id}/edit`)}
             >
               <Edit className="h-4 w-4" />
             </Button>
