@@ -1,9 +1,32 @@
 import { NextResponse } from "next/server";
 import { dbConnect, collections } from "@/lib/db";
 import { ObjectId } from "mongodb";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
 
 export async function GET(request: Request) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) {
+      return NextResponse.json({ error: "অননুমোদিত অ্যাক্সেস" }, { status: 401 });
+    }
+    const sessionUserId = (session.user as any).id;
+    const sessionUserEmail = session.user.email ? session.user.email.toLowerCase() : "";
+
+    const usersCol = await dbConnect(collections.users);
+    
+    // Resolve user document from database by email first, fallback to id
+    let currentUser = null;
+    if (sessionUserEmail) {
+      currentUser = await usersCol.findOne({ email: sessionUserEmail });
+    }
+    if (!currentUser && ObjectId.isValid(sessionUserId)) {
+      currentUser = await usersCol.findOne({ _id: new ObjectId(sessionUserId) });
+    }
+
+    const dbUserId = currentUser ? currentUser._id.toString() : sessionUserId;
+    const userEmail = currentUser ? currentUser.email.toLowerCase() : sessionUserEmail;
+
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search") || "";
     const topic = searchParams.get("topic") || "";
@@ -11,7 +34,12 @@ export async function GET(request: Request) {
     
     const collection = await dbConnect(collections.memories);
     
-    let query: any = {};
+    let query: any = {
+      $or: [
+        { topic: { $ne: "ভালোবাসার গল্প" } },
+        { topic: "ভালোবাসার গল্প", userId: { $in: [dbUserId, userEmail] } }
+      ]
+    };
     if (search) {
       query.title = { $regex: search, $options: "i" };
     }
@@ -26,7 +54,20 @@ export async function GET(request: Request) {
       .sort(sortOption)
       .toArray();
 
-    return NextResponse.json(memories, { status: 200 });
+    // Fetch all users to map creator name and avatar
+    const users = await usersCol.find({}).toArray();
+    const userMap = new Map(users.map(u => [u._id.toString(), u]));
+
+    const memoriesWithCreators = memories.map(m => {
+      const creator = userMap.get(m.userId);
+      return {
+        ...m,
+        creatorName: creator?.name || "LifeCanvas User",
+        creatorImage: creator?.image || null
+      };
+    });
+
+    return NextResponse.json(memoriesWithCreators, { status: 200 });
   } catch (error) {
     console.error("Error fetching memories:", error);
     return NextResponse.json({ error: "স্মৃতিসমূহ আনতে ব্যর্থ হয়েছে" }, { status: 500 });
@@ -35,11 +76,32 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) {
+      return NextResponse.json({ error: "অননুমোদিত অ্যাক্সেস" }, { status: 401 });
+    }
+    const sessionUserId = (session.user as any).id;
+    const sessionUserEmail = session.user.email ? session.user.email.toLowerCase() : "";
+
+    const usersCol = await dbConnect(collections.users);
+    
+    // Resolve user document from database by email first, fallback to id
+    let currentUser = null;
+    if (sessionUserEmail) {
+      currentUser = await usersCol.findOne({ email: sessionUserEmail });
+    }
+    if (!currentUser && ObjectId.isValid(sessionUserId)) {
+      currentUser = await usersCol.findOne({ _id: new ObjectId(sessionUserId) });
+    }
+
+    const dbUserId = currentUser ? currentUser._id.toString() : sessionUserId;
+
     const body = await request.json();
     const collection = await dbConnect(collections.memories);
 
     // Provide default values
     const newMemory = {
+      userId: dbUserId,
       title: body.title,
       topic: body.topic,
       description: body.description,

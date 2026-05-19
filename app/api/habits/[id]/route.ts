@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { dbConnect, collections } from "@/lib/db";
 import { ObjectId } from "mongodb";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -52,6 +54,12 @@ function calculateStreak(historyDates: string[]): number {
 
 export async function PATCH(request: Request, { params }: Props) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) {
+      return NextResponse.json({ error: "অননুমোদিত অ্যাক্সেস" }, { status: 401 });
+    }
+    const userId = (session.user as any).id;
+
     const { id } = await params;
     if (!ObjectId.isValid(id)) {
       return NextResponse.json({ error: "অবৈধ আইডি ফরম্যাট" }, { status: 400 });
@@ -60,9 +68,9 @@ export async function PATCH(request: Request, { params }: Props) {
     const body = await request.json();
     const collection = await dbConnect(collections.habits);
 
-    const habit = await collection.findOne({ _id: new ObjectId(id) });
+    const habit = await collection.findOne({ _id: new ObjectId(id), userId });
     if (!habit) {
-      return NextResponse.json({ error: "অভ্যাসটি পাওয়া যায়নি" }, { status: 404 });
+      return NextResponse.json({ error: "অভ্যাসটি পাওয়া যায়নি বা অ্যাক্সেস নেই" }, { status: 404 });
     }
 
     // Toggle completion for the provided date (default to local today date YYYY-MM-DD)
@@ -85,7 +93,7 @@ export async function PATCH(request: Request, { params }: Props) {
     const newStreak = calculateStreak(newHistory);
 
     const result = await collection.updateOne(
-      { _id: new ObjectId(id) },
+      { _id: new ObjectId(id), userId },
       {
         $set: {
           history: newHistory,
@@ -108,16 +116,22 @@ export async function PATCH(request: Request, { params }: Props) {
 
 export async function DELETE(request: Request, { params }: Props) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) {
+      return NextResponse.json({ error: "অননুমোদিত অ্যাক্সেস" }, { status: 401 });
+    }
+    const userId = (session.user as any).id;
+
     const { id } = await params;
     if (!ObjectId.isValid(id)) {
       return NextResponse.json({ error: "অবৈধ আইডি ফরম্যাট" }, { status: 400 });
     }
 
     const collection = await dbConnect(collections.habits);
-    const result = await collection.deleteOne({ _id: new ObjectId(id) });
+    const result = await collection.deleteOne({ _id: new ObjectId(id), userId });
 
     if (result.deletedCount === 0) {
-      return NextResponse.json({ error: "অভ্যাস পাওয়া যায়নি" }, { status: 404 });
+      return NextResponse.json({ error: "অভ্যাস পাওয়া যায়নি বা অ্যাক্সেস নেই" }, { status: 404 });
     }
 
     return NextResponse.json({ message: "অভ্যাস সফলভাবে মুছে ফেলা হয়েছে" }, { status: 200 });

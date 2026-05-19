@@ -19,6 +19,8 @@ interface Memory {
   date: string;
   location?: string;
   privacy: string;
+  creatorName?: string;
+  creatorImage?: string;
 }
 
 interface MemoryCardProps {
@@ -65,6 +67,22 @@ export function MemoryCard({ memory, index }: MemoryCardProps) {
           </div>
           
           <CardContent className="flex-1 p-5">
+            {/* Creator profile */}
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-6 h-6 rounded-full border border-white/20 bg-white/5 overflow-hidden flex items-center justify-center shrink-0">
+                {memory.creatorImage ? (
+                  <img src={memory.creatorImage} alt={memory.creatorName} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-[10px] font-bold uppercase text-primary">
+                    {memory.creatorName ? memory.creatorName.charAt(0) : "U"}
+                  </span>
+                )}
+              </div>
+              <span className="text-xs text-muted-foreground font-semibold truncate">
+                {memory.creatorName || "LifeCanvas User"}
+              </span>
+            </div>
+
             <h3 className="font-playfair text-xl font-bold line-clamp-1 mb-2 group-hover:text-primary transition-colors">
               {memory.title}
             </h3>

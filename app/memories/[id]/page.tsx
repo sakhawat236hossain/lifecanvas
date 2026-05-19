@@ -10,13 +10,17 @@ import { ArrowLeft, CalendarDays, MapPin, Tag, Trash2, Edit, Loader2 } from "luc
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { useSession } from "next-auth/react";
 
 export default function SingleMemoryPage() {
   const { id } = useParams();
   const router = useRouter();
+  const { data: session } = useSession();
   const [memory, setMemory] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
+
+  const isOwner = session?.user && memory && (session.user as any).id === memory.userId;
 
   useEffect(() => {
     const fetchMemory = async () => {
@@ -102,25 +106,27 @@ export default function SingleMemoryPage() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
 
-          <div className="flex gap-2">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="rounded-full bg-background/20 backdrop-blur-md hover:bg-background/40"
-              onClick={() => router.push(`/memories/${id}/edit`)}
-            >
-              <Edit className="h-4 w-4" />
-            </Button>
-            <Button 
-              variant="destructive" 
-              size="icon" 
-              className="rounded-full backdrop-blur-md opacity-80 hover:opacity-100"
-              onClick={handleDelete}
-              disabled={deleting}
-            >
-              {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-            </Button>
-          </div>
+          {isOwner && (
+            <div className="flex gap-2">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="rounded-full bg-background/20 backdrop-blur-md hover:bg-background/40"
+                onClick={() => router.push(`/memories/${id}/edit`)}
+              >
+                <Edit className="h-4 w-4" />
+              </Button>
+              <Button 
+                variant="destructive" 
+                size="icon" 
+                className="rounded-full backdrop-blur-md opacity-80 hover:opacity-100"
+                onClick={handleDelete}
+                disabled={deleting}
+              >
+                {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Title overlay */}
@@ -150,6 +156,22 @@ export default function SingleMemoryPage() {
           transition={{ duration: 0.8, delay: 0.3 }}
           className="flex flex-wrap items-center gap-6 text-sm text-muted-foreground mb-12 border-b border-white/5 pb-8"
         >
+          {/* Creator Profile */}
+          <div className="flex items-center gap-2 border-r border-white/10 pr-4">
+            <div className="w-6 h-6 rounded-full border border-white/20 bg-white/5 overflow-hidden flex items-center justify-center shrink-0">
+              {memory.creatorImage ? (
+                <img src={memory.creatorImage} alt={memory.creatorName} className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-[10px] font-bold uppercase text-primary">
+                  {memory.creatorName ? memory.creatorName.charAt(0) : "U"}
+                </span>
+              )}
+            </div>
+            <span className="font-semibold text-foreground/80">
+              {memory.creatorName || "LifeCanvas User"}
+            </span>
+          </div>
+
           <div className="flex items-center gap-2">
             <CalendarDays className="h-4 w-4" />
             {format(new Date(memory.date), "MMMM d, yyyy")}

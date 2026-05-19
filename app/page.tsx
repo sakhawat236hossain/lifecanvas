@@ -61,10 +61,19 @@ export default function LandingPage() {
             className="relative h-[600px] w-full hidden lg:block"
           >
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md aspect-[4/5] rounded-3xl overflow-hidden border border-white/10 shadow-2xl rotate-3 hover:rotate-0 transition-transform duration-500 z-20 bg-card">
-              <div className="w-full h-full bg-gradient-to-br from-primary/10 to-transparent flex flex-col items-center justify-center p-8 text-center space-y-4">
-                 <ImageIcon className="h-16 w-16 text-primary/50" />
-                 <h3 className="font-playfair text-2xl font-bold">একটি সুন্দর স্মৃতি</h3>
-                 <p className="text-muted-foreground text-sm">ছবি ও গল্প যোগ করে এগুলোকে জীবন্ত করে তুলুন।</p>
+              <div className="relative w-full h-full">
+                <Image
+                  src="/shobTheke.jpg"
+                  alt="সবচেয়ে সুন্দর স্মৃতি"
+                  fill
+                  className="object-cover"
+                  priority
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-8 text-white space-y-2">
+                   <ImageIcon className="h-8 w-8 text-primary" />
+                   <h3 className="font-playfair text-2xl font-bold">একটি সুন্দর স্মৃতি</h3>
+                   <p className="text-white/80 text-sm">ছবি ও গল্প যোগ করে এগুলোকে জীবন্ত করে তুলুন।</p>
+                </div>
               </div>
             </div>
             

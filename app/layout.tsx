@@ -23,6 +23,7 @@ export const metadata: Metadata = {
 };
 
 import { ThemeProvider } from "@/components/theme-provider";
+import { AuthProvider } from "@/components/providers/SessionProvider";
 import { Navbar } from "@/components/layout/Navbar";
 import { MobileNav } from "@/components/layout/MobileNav";
 
@@ -46,12 +47,14 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <Navbar />
-          <main className="flex-1 flex flex-col pb-24 md:pb-0">
-            {children}
-          </main>
-          <MobileNav />
-          <Toaster position="bottom-right" richColors theme="dark" />
+          <AuthProvider>
+            <Navbar />
+            <main className="flex-1 flex flex-col pb-24 md:pb-0">
+              {children}
+            </main>
+            <MobileNav />
+            <Toaster position="bottom-right" richColors theme="dark" />
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

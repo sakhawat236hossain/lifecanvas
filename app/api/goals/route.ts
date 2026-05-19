@@ -1,10 +1,18 @@
 import { NextResponse } from "next/server";
 import { dbConnect, collections } from "@/lib/db";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
 
 export async function GET() {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) {
+      return NextResponse.json({ error: "অননুমোদিত অ্যাক্সেস" }, { status: 401 });
+    }
+    const userId = (session.user as any).id;
+
     const collection = await dbConnect(collections.goals);
-    const goals = await collection.find({}).sort({ createdAt: -1 }).toArray();
+    const goals = await collection.find({ userId }).sort({ createdAt: -1 }).toArray();
     return NextResponse.json(goals, { status: 200 });
   } catch (error) {
     console.error("Error fetching goals:", error);
@@ -17,6 +25,12 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) {
+      return NextResponse.json({ error: "অননুমোদিত অ্যাক্সেস" }, { status: 401 });
+    }
+    const userId = (session.user as any).id;
+
     const body = await request.json();
     const collection = await dbConnect(collections.goals);
 
@@ -28,6 +42,7 @@ export async function POST(request: Request) {
     }
 
     const newGoal = {
+      userId,
       title: body.title,
       target: Number(body.target),
       current: Number(body.current || 0),

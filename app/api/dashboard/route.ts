@@ -1,8 +1,16 @@
 import { NextResponse } from "next/server";
 import { dbConnect, collections } from "@/lib/db";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
 
 export async function GET() {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) {
+      return NextResponse.json({ error: "অননুমোদিত অ্যাক্সেস" }, { status: 401 });
+    }
+    const userId = (session.user as any).id;
+
     const memoriesCol = await dbConnect(collections.memories);
     const goalsCol = await dbConnect(collections.goals);
     const habitsCol = await dbConnect(collections.habits);
@@ -10,27 +18,28 @@ export async function GET() {
     const journalsCol = await dbConnect(collections.journals);
 
     // 1. Memories stats
-    const totalMemories = await memoriesCol.countDocuments();
+    const totalMemories = await memoriesCol.countDocuments({ userId });
     const recentMemories = await memoriesCol
-      .find({})
+      .find({ userId })
       .sort({ date: -1 })
       .limit(5)
       .toArray();
 
     // 2. Goals stats
-    const totalGoals = await goalsCol.countDocuments();
+    const totalGoals = await goalsCol.countDocuments({ userId });
     const completedGoals = await goalsCol.countDocuments({
+      userId,
       $expr: { $gte: ["$current", "$target"] }
     });
 
     // 3. Habits stats
-    const totalHabits = await habitsCol.countDocuments();
-    const habitsList = await habitsCol.find({}).toArray();
+    const totalHabits = await habitsCol.countDocuments({ userId });
+    const habitsList = await habitsCol.find({ userId }).toArray();
     const maxStreak = habitsList.reduce((max, h) => Math.max(max, h.streak || 0), 0);
 
     // 4. Achievements / XP stats & Levels
-    const totalAchievements = await achievementsCol.countDocuments();
-    const achievementsList = await achievementsCol.find({}).toArray();
+    const totalAchievements = await achievementsCol.countDocuments({ userId });
+    const achievementsList = await achievementsCol.find({ userId }).toArray();
     const totalXP = achievementsList.reduce((sum, a) => sum + (a.points || 0), 0);
 
     // Leveling Logic: 500 XP per level
@@ -54,7 +63,7 @@ export async function GET() {
 
     // 5. Recent Journals
     const recentJournals = await journalsCol
-      .find({})
+      .find({ userId })
       .sort({ date: -1 })
       .limit(3)
       .toArray();
@@ -65,6 +74,7 @@ export async function GET() {
     
     const journalsForGrid = await journalsCol
       .find({
+        userId,
         date: { $gte: oneYearAgo }
       })
       .project({ date: 1, mood: 1, title: 1 })
@@ -86,10 +96,12 @@ export async function GET() {
 
     // 7. Comprehensive Mood Analytics (Merging Memories & Journals)
     const memoriesMoods = await memoriesCol.aggregate([
+      { $match: { userId } },
       { $group: { _id: "$mood", count: { $sum: 1 } } }
     ]).toArray();
 
     const journalsMoods = await journalsCol.aggregate([
+      { $match: { userId } },
       { $group: { _id: "$mood", count: { $sum: 1 } } }
     ]).toArray();
 
@@ -119,7 +131,7 @@ export async function GET() {
 
     let rewindItem = null;
 
-    const allMemories = await memoriesCol.find({}).toArray();
+    const allMemories = await memoriesCol.find({ userId }).toArray();
     const sameDayMemory = allMemories.find(m => {
       const mDate = new Date(m.date);
       return mDate.getMonth() === todayMonth && 
@@ -138,7 +150,7 @@ export async function GET() {
         badge: "স্মৃতি রিওয়াইন্ড"
       };
     } else {
-      const allJournals = await journalsCol.find({}).toArray();
+      const allJournals = await journalsCol.find({ userId }).toArray();
       const sameDayJournal = allJournals.find(j => {
         const jDate = new Date(j.date);
         return jDate.getMonth() === todayMonth && 
@@ -210,7 +222,7 @@ export async function GET() {
       let moodVerb = "শান্ত ও প্রফুল্ল";
       if (bestMood.includes("😊")) moodVerb = "উচ্ছ্বসিত ও আনন্দদায়ক 😊";
       else if (bestMood.includes("🧘")) moodVerb = "শান্তপূর্ণ ও স্থির 🧘";
-      else if (bestMood.includes("🤩")) moodVerb = "অত্যন্ত রোমাঞ্চিত ও উত্তেজিত 🤩";
+      else if (bestMood.includes("🤩")) moodVerb = "অত্যಂತ রোমাঞ্চিত ও উত্তেজিত 🤩";
       else if (bestMood.includes("🥹")) moodVerb = "স্মৃতিকাতর ও আবেগপ্রবণ 🥹";
       else if (bestMood.includes("💖")) moodVerb = "কৃতজ্ঞ ও ভালোবাসায় পূর্ণ 💖";
       else if (bestMood.includes("😔")) moodVerb = "কিছুটা বিষণ্ণ ও চিন্তিত 😔";
