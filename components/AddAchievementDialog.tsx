@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import axios from "axios";
+
 import { toast } from "sonner";
 import { Loader2, ImagePlus } from "lucide-react";
 import { uploadImageToCloudinary } from "@/lib/cloudinary";
@@ -37,7 +38,7 @@ export const iconPresets = [
 const achievementSchema = z.object({
   title: z.string().min(2, "অর্জনের শিরোনাম কমপক্ষে ২ অক্ষরের হতে হবে").max(80),
   description: z.string().max(200).optional(),
-  icon: z.string().min(1, "একটি আইকন নির্বাচন করুন"),
+  icon: z.string().min(1, "একটি আইকন নির্বাচন করুন -->"),
   points: z.number().min(0, "পয়েন্ট ০ বা তার বেশি হতে হবে"),
   date: z.string().min(1, "তারিখ দেওয়া আবশ্যক"),
   color: z.string().min(1, "কালার থিম সিলেক্ট করুন"),
